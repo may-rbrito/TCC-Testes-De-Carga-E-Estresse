@@ -2,21 +2,21 @@ import time
 import httpx
 import asyncio
 import matplotlib.pyplot as plt
-
+import numpy as np
 
 url = 'https://pitrol.dev/aouerj/reportError'
 
 # Configurações para o teste
 delay_in_seconds = 1  # Tempo de espera em segundos entre cada conjunto de requisições
 num_requests = 100  # Número de requisições a serem feitas a cada intervalo
-qtty_of_groups = 30
+qtty_of_groups = 30  # Quantidade de grupos
 
 # Listas para armazenar os resultados
-group_durations = []  # Tempo total gasto por grupo de 100 requisições
-total_success_counts = []  # Contador acumulado de requisições bem-sucedidas
+group_durations = []  # Tempo total gasto por grupo de requisições
+success_counts_per_group = []  # Contador de requisições bem-sucedidas por grupo
 individual_durations = []  # Lista para armazenar o tempo gasto em cada requisição
-
-total_success = 0  # Contador total de requisições bem-sucedidas
+group_means = []  # Médias dos tempos de resposta por grupo
+group_std_devs = []  # Desvios padrão dos tempos de resposta por grupo
 
 async def req_get_async(client):
     try:
@@ -26,11 +26,9 @@ async def req_get_async(client):
         duration = end - start
         return response, duration
 
-
     except httpx.RequestError as e:
         print(f"Erro na requisição: {e}")
         return None, None
-    
 
 async def do_load_test():
     async with httpx.AsyncClient() as client:
@@ -38,11 +36,8 @@ async def do_load_test():
         return await asyncio.gather(*tasks)
 
 async def run_load_test():
-    global total_success
-
     for _ in range(qtty_of_groups):
         start_time = time.time()
-       #print(f"Realizando {num_requests} requisições...")
 
         # Executar o teste de carga assíncrono
         results = await do_load_test()
@@ -51,43 +46,64 @@ async def run_load_test():
         success_count = sum(1 for response, _ in results if response and response.status_code == 200)
         total_time = time.time() - start_time
 
-        # Atualizar o contador total de requisições bem-sucedidas
-        total_success += success_count
+        # Armazenar o número de requisições bem-sucedidas neste grupo
+        success_counts_per_group.append(success_count)
 
-        # Armazenar o tempo de cada requisição individual
-        individual_durations.extend(duration for _, duration in results if duration is not None)
+        # Armazenar os tempos individuais das requisições deste grupo
+        group_durations_per_group = [duration for _, duration in results if duration is not None]
+        individual_durations.extend(group_durations_per_group)
 
-        # Armazenar os resultados
+        # Armazenar o tempo total do grupo
         group_durations.append(total_time)
-        total_success_counts.append(total_success)
 
-        #print(f"Requisições realizadas em {total_time:.2f} segundos")
-        
-        if delay_in_seconds: await asyncio.sleep(delay_in_seconds)  # Esperar antes do próximo grupo
+        # Calcular e armazenar a média e o desvio padrão dos tempos de resposta deste grupo
+        if group_durations_per_group:
+            group_mean = np.mean(group_durations_per_group)
+            group_std_dev = np.std(group_durations_per_group)
+        else:
+            group_mean = 0
+            group_std_dev = 0
 
+        group_means.append(group_mean)
+        group_std_devs.append(group_std_dev)
 
-# Plotar o tempo gasto por grupo de requisições
+        # Esperar antes do próximo grupo, se necessário
+        if delay_in_seconds: await asyncio.sleep(delay_in_seconds)
+
+# Plotar o tempo gasto por grupo de requisições com a média e o desvio padrão sobrepostos
 def plot_group_durations():
     plt.figure(figsize=(10, 5))
-    plt.plot(group_durations, marker='o', linestyle='-', color='b')
-    plt.title('Tempo Gasto por Grupo de Requisições')
+
+    group_indexes = range(len(group_durations))
+
+    # Plotar o tempo total gasto por grupo
+    plt.plot(group_indexes, group_durations, marker='o', linestyle='-', color='b', label='Tempo Total por Grupo')
+
+    # Plotar a média dos tempos de resposta por grupo
+    plt.plot(group_indexes, group_means, marker='x', linestyle='--', color='g', label='Média dos Tempos de Resposta')
+
+    # Plotar o desvio padrão dos tempos de resposta por grupo
+    plt.errorbar(group_indexes, group_means, yerr=group_std_devs, fmt='s', color='r', label='Desvio Padrão')
+
+    # Personalizar o gráfico
+    plt.title('Tempo Total, Média e Desvio Padrão dos Tempos de Resposta por Grupo')
     plt.xlabel('Número do Grupo')
     plt.ylabel('Tempo (segundos)')
+    plt.legend()
     plt.grid(True)
     plt.show()
 
-# Plotar o total acumulado de requisições bem-sucedidas
-def plot_total_success_counts():
+# Plotar o número de requisições bem-sucedidas por grupo (gráfico de barras)
+def plot_success_counts_per_group():
     plt.figure(figsize=(10, 5))
-    plt.plot(total_success_counts, marker='o', linestyle='-', color='g')
-    plt.title('Total Acumulado de Requisições Bem-Sucedidas')
+    plt.bar(range(1, qtty_of_groups + 1), success_counts_per_group, color='g')
+    plt.title('Requisições Bem-Sucedidas por Grupo')
     plt.xlabel('Número do Grupo')
-    plt.ylabel('Total Acumulado de Requisições Bem-Sucedidas')
+    plt.ylabel('Quantidade de Requisições Bem-Sucedidas')
     plt.grid(True)
     plt.show()
-
 
 # Iniciar o teste de carga
 asyncio.run(run_load_test())
 plot_group_durations()
-plot_total_success_counts()
+plot_success_counts_per_group()
