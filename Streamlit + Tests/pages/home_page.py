@@ -18,3 +18,5 @@ def home():
 
     if st.button("Teste de Estresse"):
        stress_test_page.run_stress_test_page()
+
+    

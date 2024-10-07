@@ -71,7 +71,7 @@ def plot_mean_and_std_dev(group_means, group_std_devs):
     fig.update_layout(
         title="Média dos Tempos de Resposta com Desvio Padrão por Grupo",
         xaxis_title="Número do Grupo",
-        yaxis_title="Tempo (s)"
+        yaxis_title="Tempo (s)",
     )
 
     st.plotly_chart(fig)
@@ -90,7 +90,7 @@ def plot_total_time_per_group(group_durations):
     fig.update_layout(
         title="Tempo Total por Grupo",
         xaxis_title="Número do Grupo",
-        yaxis_title="Tempo Total (s)"
+        yaxis_title="Tempo Total (s)",
     )
 
     st.plotly_chart(fig)
@@ -118,7 +118,14 @@ def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_
         title="Requisições Solicitadas e Bem-Sucedidas por Grupo",
         xaxis_title="Número do Grupo",
         yaxis_title="Quantidade de Requisições",
-        barmode='group'
+        barmode='group',
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=-0.3,
+            xanchor="center",
+            x=0.5
+        )
     )
 
     st.plotly_chart(fig)
@@ -163,3 +170,5 @@ def run_load_test_page():
         
         # Exibe o gráfico de requisições bem-sucedidas e solicitadas por grupo
         plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_requests)
+    
+    

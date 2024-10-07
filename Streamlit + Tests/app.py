@@ -1,14 +1,6 @@
 import streamlit as st
 from pages import home_page, load_test_page, stress_test_page
 
-st.markdown("""
-    <style>
-        div[data-testid="stSidebarNav"]{
-            display: none;
-        }
-    </style>
-    """, unsafe_allow_html=True)    
-
 st.sidebar.title("Navegação")
 option = st.sidebar.selectbox("Escolha a página", ["Página Inicial 🏠", "Teste de Carga 🔄️", "Teste de Estresse 🚩"])
 
@@ -18,3 +10,5 @@ elif option == "Teste de Carga 🔄️":
     load_test_page.run_load_test_page()
 elif option == "Teste de Estresse 🚩":
     stress_test_page.run_stress_test_page() 
+
+    
