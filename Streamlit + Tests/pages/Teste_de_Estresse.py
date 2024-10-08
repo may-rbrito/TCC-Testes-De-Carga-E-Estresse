@@ -28,10 +28,32 @@ async def do_stress_test(url, num_requests):
         tasks = [req_get_async(client, url) for _ in range(num_requests)]
         return await asyncio.gather(*tasks)
 
-async def run_stress_test(url, initial_num_requests, increment, delay_in_seconds):
+async def run_stress_test(url, initial_num_requests, increment, delay_in_seconds, progress_bar):
     num_requests = initial_num_requests
+    group_number = 1
+    total_groups = 0
+    
+    # Calcular o número total de grupos antes de sair do loop (estimativa)
+    while True:
+        results = await do_stress_test(url, num_requests)
+        success_count = sum(1 for response, _ in results if response and response.status_code == 200)
+        total_requests = len(results)
+        total_groups += 1
+
+        # Se a taxa de sucesso for menor que 50%, parar a execução
+        if success_count / total_requests < 0.50:
+            break
+
+        num_requests += increment
+
+    # Resetar variáveis e começar o teste de estresse
+    num_requests = initial_num_requests
+    group_number = 1
 
     while True:
+        # Atualiza o texto da barra de progresso
+        progress_bar.progress(group_number / total_groups, f"Executando as requisições do grupo {group_number}")
+
         results = await do_stress_test(url, num_requests)
 
         success_count = sum(1 for response, _ in results if response and response.status_code == 200)
@@ -52,8 +74,13 @@ async def run_stress_test(url, initial_num_requests, increment, delay_in_seconds
             break
 
         num_requests += increment
+        group_number += 1
+
         if delay_in_seconds:
             await asyncio.sleep(delay_in_seconds)
+
+    # Limpar a barra de progresso após a conclusão do teste
+    progress_bar.empty()
 
 # Exibir os resultados
 def plot_time_per_group():
@@ -129,7 +156,7 @@ def show_results_table():
         "Taxa de Sucesso": response_rates
     }
     df = pd.DataFrame(data)
-    st.dataframe(df,use_container_width=True)
+    st.dataframe(df, use_container_width=True)
 
 # Interface da página 
 def run_stress_test_page():
@@ -144,9 +171,11 @@ def run_stress_test_page():
 
     if st.button("Iniciar Teste de Estresse"):
         if url:
-            # Adicionando animação de loading
-            with st.spinner('Executando o teste de estresse... Isso pode levar algum tempo...'):
-                asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
+            # Adicionando a barra de progresso
+            progress_bar = st.progress(0, text="Executando o teste de estresse...")
+
+            # Executar o teste de estresse com a barra de progresso
+            asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds, progress_bar))
 
             st.success('Teste concluído!')
 
@@ -162,13 +191,8 @@ def run_stress_test_page():
             st.write("Taxa de sucesso para cada grupo.")
             plot_success_rate()
 
-            st.subheader("Tabela de resultados do Teste de Estresse")
-            st.write("Resultados do teste de estresse.")
+            st.subheader("Tabela de Resultados")
             show_results_table()
 
-        else:
-            st.warning("Por favor, informe uma URL válida.")
-
-# Executar a página 
 if __name__ == "__main__":
     run_stress_test_page()

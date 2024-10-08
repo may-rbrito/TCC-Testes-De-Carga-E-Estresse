@@ -28,8 +28,11 @@ async def do_load_test(url, num_requests):
         tasks = [req_get_async(client, url) for _ in range(num_requests)]
         return await asyncio.gather(*tasks)
 
-async def run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups):
-    for _ in range(qtty_of_groups):
+async def run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups, progress_bar):
+    for i in range(qtty_of_groups):
+        # Atualiza o texto da barra de progresso para o grupo atual
+        progress_bar.progress((i) / qtty_of_groups, text=f"Executando as requisições do grupo {i + 1}")
+        
         results = await do_load_test(url, num_requests)
 
         success_count = sum(1 for response, _ in results if response and response.status_code == 200)
@@ -146,10 +149,18 @@ def run_load_test_page():
 
     if st.button("Iniciar Teste de Carga"):
         if url:
-            with st.spinner("Executando o teste de carga..."):
-                group_durations, success_counts_per_group, group_means, group_std_devs = asyncio.run(run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups))
+            # Criar a barra de progresso
+            progress_bar = st.progress(0, text="Executando o teste de carga...")
 
-            st.success('Teste concluído!')
+            # Executar o teste de carga com a barra de progresso
+            group_durations, success_counts_per_group, group_means, group_std_devs = asyncio.run(
+                run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups, progress_bar)
+            )
+
+            # Remover a barra de progresso após a conclusão
+            progress_bar.empty()
+
+            st.info('A média de tempo de resposta as requisições é de {:.2f} segundos.'.format(np.mean(group_means)))
             
             st.subheader("Tempo médio de resposta com desvio padrão por grupo")	
             st.write("O gráfico abaixo mostra o tempo médio de resposta com desvio padrão por grupo.")
@@ -173,4 +184,3 @@ def run_load_test_page():
 # Executar a página 
 if __name__ == "__main__":
     run_load_test_page()
-    
