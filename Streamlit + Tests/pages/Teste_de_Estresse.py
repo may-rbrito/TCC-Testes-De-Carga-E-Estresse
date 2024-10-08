@@ -65,12 +65,13 @@ def plot_time_per_group():
         name='Tempo Gasto (s)',
         marker=dict(size=8)
     ))
+
     fig.update_layout(
-        title="Tempo Gasto por Grupo",
         xaxis_title="Grupo",
         yaxis_title="Tempo Gasto (s)",
         xaxis=dict(tickmode='linear', dtick=1)
     )
+
     st.plotly_chart(fig)
 
 def plot_success_requests():
@@ -80,13 +81,14 @@ def plot_success_requests():
         y=success_counts_per_group,
         name='Requisições Bem-Sucedidas'
     ))
+
     fig.add_trace(go.Bar(
         x=list(range(1, len(total_requests_per_group) + 1)),
         y=total_requests_per_group,
         name='Total de Requisições'
     ))
+
     fig.update_layout(
-        title="Requisições Bem-Sucedidas e Totais por Grupo",
         xaxis_title="Grupo",
         yaxis_title="Número de Requisições",
         barmode='group',
@@ -98,6 +100,7 @@ def plot_success_requests():
             x=0.5
         )
     )
+
     st.plotly_chart(fig)
 
 def plot_success_rate():
@@ -109,32 +112,24 @@ def plot_success_rate():
         name='Taxa de Sucesso',
         marker=dict(size=8)
     ))
+
     fig.update_layout(
-        title="Taxa de Sucesso por Grupo",
         xaxis_title="Grupo",
         yaxis_title="Taxa de Sucesso",
         xaxis=dict(tickmode='linear')
     )
+
     st.plotly_chart(fig)
 
 def show_results_table():
-    results_df = pd.DataFrame({
-        "Grupo": range(1, len(group_durations) + 1),
+    data = {
         "Tempo Gasto (s)": group_durations,
         "Requisições Bem-Sucedidas": success_counts_per_group,
         "Total de Requisições": total_requests_per_group,
         "Taxa de Sucesso": response_rates
-    })
-    styled_table = results_df.style \
-        .set_table_attributes('style="width:100%; text-align: center;"') \
-        .set_caption("Resultados do Teste de Estresse") \
-        .set_table_styles([
-            {"selector": "th", "props": [("background-color", "#4CAF50"),
-                                          ("color", "white"),
-                                          ("font-weight", "bold"),
-                                          ("text-align", "center")]}
-        ])
-    st.dataframe(styled_table)
+    }
+    df = pd.DataFrame(data)
+    st.dataframe(df,use_container_width=True)
 
 # Interface da página 
 def run_stress_test_page():
@@ -149,18 +144,26 @@ def run_stress_test_page():
 
     if st.button("Iniciar Teste de Estresse"):
         if url:
-            asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
+            # Adicionando animação de loading
+            with st.spinner('Executando o teste de estresse... Isso pode levar algum tempo...'):
+                asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
+
+            st.success('Teste concluído!')
 
             st.subheader("Tempo Gasto por Grupo")
+            st.write("Tempo gasto em segundos para cada grupo.")
             plot_time_per_group()
 
             st.subheader("Requisições Bem-Sucedidas e Totais por Grupo")
+            st.write("Número de requisições bem-sucedidas e totais para cada grupo.")
             plot_success_requests()
 
             st.subheader("Taxa de Sucesso por Grupo")
+            st.write("Taxa de sucesso para cada grupo.")
             plot_success_rate()
 
-            st.subheader("Resultados do Teste de Estresse")
+            st.subheader("Tabela de resultados do Teste de Estresse")
+            st.write("Resultados do teste de estresse.")
             show_results_table()
 
         else:

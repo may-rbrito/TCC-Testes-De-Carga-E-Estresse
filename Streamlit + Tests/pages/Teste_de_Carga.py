@@ -6,6 +6,12 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
+# Armazenar os resultados
+group_durations = []
+success_counts_per_group = []
+group_means = []
+group_std_devs = []
+
 # Realizar as requisições
 async def req_get_async(client, url):
     try:
@@ -23,11 +29,6 @@ async def do_load_test(url, num_requests):
         return await asyncio.gather(*tasks)
 
 async def run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups):
-    group_durations = []
-    success_counts_per_group = []
-    group_means = []
-    group_std_devs = []
-
     for _ in range(qtty_of_groups):
         results = await do_load_test(url, num_requests)
 
@@ -67,7 +68,6 @@ def plot_mean_and_std_dev(group_means, group_std_devs):
     ))
 
     fig.update_layout(
-        title="Média dos Tempos de Resposta com Desvio Padrão por Grupo",
         xaxis_title="Número do Grupo",
         yaxis_title="Tempo (s)",
     )
@@ -85,7 +85,6 @@ def plot_total_time_per_group(group_durations):
     ))
 
     fig.update_layout(
-        title="Tempo Total por Grupo",
         xaxis_title="Número do Grupo",
         yaxis_title="Tempo Total (s)",
     )
@@ -95,15 +94,13 @@ def plot_total_time_per_group(group_durations):
 def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_requests):
     fig = go.Figure()
 
-    # Adiciona o total de requisições solicitadas por grupo
     fig.add_trace(go.Bar(
         x=list(range(1, qtty_of_groups + 1)),
-        y=[num_requests] * qtty_of_groups,  # Total de requisições é o mesmo para todos os grupos
+        y=[num_requests] * qtty_of_groups,
         name="Requisições Solicitadas",
         marker=dict(color='lightblue')
     ))
 
-    # Adiciona as requisições bem-sucedidas
     fig.add_trace(go.Bar(
         x=list(range(1, qtty_of_groups + 1)),
         y=success_counts_per_group,
@@ -111,7 +108,6 @@ def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_
     ))
 
     fig.update_layout(
-        title="Requisições Solicitadas e Bem-Sucedidas por Grupo",
         xaxis_title="Número do Grupo",
         yaxis_title="Quantidade de Requisições",
         barmode='group',
@@ -128,14 +124,13 @@ def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_
 
 def show_results_table(group_means, group_std_devs, group_durations, success_counts_per_group):
     data = {
-        'Grupo': list(range(1, len(group_means) + 1)),
         'Média (s)': group_means,
         'Desvio Padrão (s)': group_std_devs,
         'Tempo Total (s)': group_durations,
         'Requisições Bem-Sucedidas': success_counts_per_group
     }
     df = pd.DataFrame(data)
-    st.dataframe(df)
+    st.dataframe(df,use_container_width=True)
 
 # Interface da página 
 def run_load_test_page():
@@ -147,21 +142,33 @@ def run_load_test_page():
     num_requests = st.number_input("Número de requisições por grupo:", min_value=1)
     qtty_of_groups = st.number_input("Quantidade de grupos:", min_value=1)
     delay_in_seconds = st.number_input("Delay entre grupos (segundos):", min_value=1)
+    
 
     if st.button("Iniciar Teste de Carga"):
-        group_durations, success_counts_per_group, group_means, group_std_devs = asyncio.run(
-            run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups)
-        )
+        if url:
+            with st.spinner("Executando o teste de carga..."):
+                group_durations, success_counts_per_group, group_means, group_std_devs = asyncio.run(run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups))
 
-        st.write(f"Resultados do teste para {url}:")
+            st.success('Teste concluído!')
+            
+            st.subheader("Tempo médio de resposta com desvio padrão por grupo")	
+            st.write("O gráfico abaixo mostra o tempo médio de resposta com desvio padrão por grupo.")
+            plot_mean_and_std_dev(group_means, group_std_devs)
 
-        show_results_table(group_means, group_std_devs, group_durations, success_counts_per_group)
-        
-        plot_mean_and_std_dev(group_means, group_std_devs)
-        
-        plot_total_time_per_group(group_durations)
-        
-        plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_requests)
+            st.subheader("Tempo total por grupo")
+            st.write("O gráfico abaixo mostra o tempo total por grupo.")
+            plot_total_time_per_group(group_durations)
+            
+            st.subheader("Requisições solicitadas e bem-sucedidas por grupo")
+            st.write("O gráfico abaixo mostra a quantidade de requisições solicitadas e bem-sucedidas por grupo.")
+            plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_requests)
+
+            st.subheader("Tabela de resultados do Teste de Carga")
+            st.write("A tabela abaixo mostra os resultados do teste de carga.")
+            show_results_table(group_means, group_std_devs, group_durations, success_counts_per_group)
+
+        else:
+            st.warning("Por favor, informe uma URL válida.")
 
 # Executar a página 
 if __name__ == "__main__":
