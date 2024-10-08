@@ -6,7 +6,7 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
-# Função para realizar uma requisição GET assíncrona
+# Realizar as requisições
 async def req_get_async(client, url):
     try:
         start = time.time()
@@ -17,13 +17,11 @@ async def req_get_async(client, url):
     except httpx.RequestError:
         return None, None
 
-# Função para realizar o teste de carga com múltiplas requisições
 async def do_load_test(url, num_requests):
     async with httpx.AsyncClient() as client:
         tasks = [req_get_async(client, url) for _ in range(num_requests)]
         return await asyncio.gather(*tasks)
 
-# Função para executar o teste de carga
 async def run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups):
     group_durations = []
     success_counts_per_group = []
@@ -56,7 +54,7 @@ async def run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups):
 
     return group_durations, success_counts_per_group, group_means, group_std_devs
 
-# Função para plotar o gráfico de média com desvio padrão usando Plotly
+# Exibir os resultados
 def plot_mean_and_std_dev(group_means, group_std_devs):
     fig = go.Figure()
 
@@ -76,7 +74,6 @@ def plot_mean_and_std_dev(group_means, group_std_devs):
 
     st.plotly_chart(fig)
 
-# Função para plotar o gráfico de Tempo Total por Grupo com Plotly
 def plot_total_time_per_group(group_durations):
     fig = go.Figure()
 
@@ -95,7 +92,6 @@ def plot_total_time_per_group(group_durations):
 
     st.plotly_chart(fig)
 
-# Função para plotar a contagem de sucessos por grupo usando gráfico de barras do Plotly
 def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_requests):
     fig = go.Figure()
 
@@ -130,7 +126,6 @@ def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_
 
     st.plotly_chart(fig)
 
-# Função para exibir a tabela sem estilização diferenciada
 def show_results_table(group_means, group_std_devs, group_durations, success_counts_per_group):
     data = {
         'Grupo': list(range(1, len(group_means) + 1)),
@@ -142,11 +137,12 @@ def show_results_table(group_means, group_std_devs, group_durations, success_cou
     df = pd.DataFrame(data)
     st.dataframe(df)
 
-# Função para gerar a interface do Streamlit para a página de Teste de Carga
+# Interface da página 
 def run_load_test_page():
+    st.set_page_config(page_title="Teste de Carga", page_icon="🔃", layout="centered")
+
     st.title("Teste de Carga")
     
-    # Entrada de URL e parâmetros de teste
     url = st.text_input("Informe a URL para o teste:", "")
     num_requests = st.number_input("Número de requisições por grupo:", min_value=1)
     qtty_of_groups = st.number_input("Quantidade de grupos:", min_value=1)
@@ -159,16 +155,15 @@ def run_load_test_page():
 
         st.write(f"Resultados do teste para {url}:")
 
-        # Exibe a tabela com os resultados
         show_results_table(group_means, group_std_devs, group_durations, success_counts_per_group)
         
-        # Exibe o gráfico de média com desvio padrão
         plot_mean_and_std_dev(group_means, group_std_devs)
         
-        # Exibe o gráfico de tempo total por grupo
         plot_total_time_per_group(group_durations)
         
-        # Exibe o gráfico de requisições bem-sucedidas e solicitadas por grupo
         plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_requests)
-    
+
+# Executar a página 
+if __name__ == "__main__":
+    run_load_test_page()
     
