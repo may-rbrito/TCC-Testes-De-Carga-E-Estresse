@@ -30,30 +30,28 @@ async def do_load_test(url, num_requests):
 
 async def run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups):
     for i in range(qtty_of_groups):
-        
-        with st.spinner(f"Executando as requisições do grupo {i}..."):
-            results = await do_load_test(url, num_requests)
+        results = await do_load_test(url, num_requests)
 
-            success_count = sum(1 for response, _ in results if response and response.status_code == 200)
-            success_counts_per_group.append(success_count)
+        success_count = sum(1 for response, _ in results if response and response.status_code == 200)
+        success_counts_per_group.append(success_count)
 
-            durations_per_group = [duration for _, duration in results if duration is not None]
+        durations_per_group = [duration for _, duration in results if duration is not None]
 
-            total_time = sum(durations_per_group)
-            group_durations.append(total_time)
+        total_time = sum(durations_per_group)
+        group_durations.append(total_time)
 
-            if durations_per_group:
-                group_mean = total_time / len(durations_per_group)
-                group_std_dev = np.std(durations_per_group)
-            else:
-                group_mean = 0
-                group_std_dev = 0
+        if durations_per_group:
+            group_mean = total_time / len(durations_per_group)
+            group_std_dev = np.std(durations_per_group)
+        else:
+            group_mean = 0
+            group_std_dev = 0
 
-            group_means.append(group_mean)
-            group_std_devs.append(group_std_dev)
+        group_means.append(group_mean)
+        group_std_devs.append(group_std_dev)
 
-            if delay_in_seconds:
-                await asyncio.sleep(delay_in_seconds)
+        if delay_in_seconds:
+            await asyncio.sleep(delay_in_seconds)
 
     return group_durations, success_counts_per_group, group_means, group_std_devs
 
@@ -64,9 +62,10 @@ def plot_mean_and_std_dev(group_means, group_std_devs):
     fig.add_trace(go.Scatter(
         x=list(range(1, len(group_means) + 1)),
         y=group_means,
-        error_y=dict(type='data', array=group_std_devs),
+        error_y=dict(color='lightblue', type='data', array=group_std_devs),
         mode='lines+markers',
-        name='Média com Desvio Padrão'
+        name='Média com Desvio Padrão',
+        marker=dict(color='lightblue', size=8),
     ))
 
     fig.update_layout(
@@ -84,6 +83,7 @@ def plot_total_time_per_group(group_durations):
         y=group_durations,
         mode='lines+markers',
         name="Tempo Total por Grupo",
+        marker=dict(color='lightblue', size=8),
     ))
 
     fig.update_layout(
@@ -100,7 +100,7 @@ def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_
         x=list(range(1, qtty_of_groups + 1)),
         y=[num_requests] * qtty_of_groups,
         name="Requisições Solicitadas",
-        marker=dict(color='lightblue'),
+        marker=dict(color='blue'),
         width=0.2 
     ))
 
@@ -108,7 +108,7 @@ def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_
         x=list(range(1, qtty_of_groups + 1)),
         y=success_counts_per_group,
         name="Requisições Bem-Sucedidas",
-        marker=dict(color='blue'),
+        marker=dict(color='lightblue'),
         width=0.2
     ))
 

@@ -32,8 +32,6 @@ async def run_stress_test(url, initial_num_requests, increment, delay_in_seconds
     num_requests = initial_num_requests
 
     while True:
-
-
         results = await do_stress_test(url, num_requests)
 
         success_count = sum(1 for response, _ in results if response and response.status_code == 200)
@@ -57,9 +55,6 @@ async def run_stress_test(url, initial_num_requests, increment, delay_in_seconds
         if delay_in_seconds:
             await asyncio.sleep(delay_in_seconds)
 
-
-
-
 def plot_time_per_group():
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -67,7 +62,7 @@ def plot_time_per_group():
         y=group_durations,
         mode='lines+markers',
         name='Tempo Gasto (s)',
-        marker=dict(size=8)
+        marker=dict(color='lightblue', size=10)
     ))
 
     fig.update_layout(
@@ -85,7 +80,7 @@ def plot_success_requests():
         x=list(range(1, len(total_requests_per_group) + 1)),
         y=total_requests_per_group,
         name='Total de Requisições',
-        marker=dict(color='lightblue'),
+        marker=dict(color='blue'),
         width=0.2  
     ))
 
@@ -93,7 +88,7 @@ def plot_success_requests():
         x=list(range(1, len(success_counts_per_group) + 1)),
         y=success_counts_per_group,
         name='Requisições Bem-Sucedidas',
-        marker=dict(color='blue'),
+        marker=dict(color='lightblue'),
         width=0.2  
     ))
 
@@ -119,7 +114,7 @@ def plot_success_rate():
         y=response_rates,
         mode='lines+markers',
         name='Taxa de Sucesso',
-        marker=dict(size=8)
+        marker=dict(color='lightblue', size=8)
     ))
 
     fig.update_layout(
@@ -153,10 +148,7 @@ def run_stress_test_page():
 
     if st.button("Iniciar Teste de Estresse"):
         if url:
-            with st.spinner('Executando o teste de estresse... Isso pode levar algum tempo...'):
-                asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
-
-            st.success('Teste concluído!')
+            asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
 
             st.subheader("Tempo Gasto por Grupo")
             st.write("Tempo gasto em segundos para cada grupo.")
