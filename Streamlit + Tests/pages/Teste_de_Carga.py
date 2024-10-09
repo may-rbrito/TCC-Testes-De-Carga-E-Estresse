@@ -28,33 +28,32 @@ async def do_load_test(url, num_requests):
         tasks = [req_get_async(client, url) for _ in range(num_requests)]
         return await asyncio.gather(*tasks)
 
-async def run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups, progress_bar):
+async def run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups):
     for i in range(qtty_of_groups):
-        # Atualiza o texto da barra de progresso para o grupo atual
-        progress_bar.progress((i) / qtty_of_groups, text=f"Executando as requisições do grupo {i + 1}")
         
-        results = await do_load_test(url, num_requests)
+        with st.spinner(f"Executando as requisições do grupo {i}..."):
+            results = await do_load_test(url, num_requests)
 
-        success_count = sum(1 for response, _ in results if response and response.status_code == 200)
-        success_counts_per_group.append(success_count)
+            success_count = sum(1 for response, _ in results if response and response.status_code == 200)
+            success_counts_per_group.append(success_count)
 
-        durations_per_group = [duration for _, duration in results if duration is not None]
-        
-        total_time = sum(durations_per_group)
-        group_durations.append(total_time)
+            durations_per_group = [duration for _, duration in results if duration is not None]
 
-        if durations_per_group:
-            group_mean = total_time / len(durations_per_group)
-            group_std_dev = np.std(durations_per_group)
-        else:
-            group_mean = 0
-            group_std_dev = 0
+            total_time = sum(durations_per_group)
+            group_durations.append(total_time)
 
-        group_means.append(group_mean)
-        group_std_devs.append(group_std_dev)
+            if durations_per_group:
+                group_mean = total_time / len(durations_per_group)
+                group_std_dev = np.std(durations_per_group)
+            else:
+                group_mean = 0
+                group_std_dev = 0
 
-        if delay_in_seconds:
-            await asyncio.sleep(delay_in_seconds)
+            group_means.append(group_mean)
+            group_std_devs.append(group_std_dev)
+
+            if delay_in_seconds:
+                await asyncio.sleep(delay_in_seconds)
 
     return group_durations, success_counts_per_group, group_means, group_std_devs
 
@@ -101,19 +100,22 @@ def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_
         x=list(range(1, qtty_of_groups + 1)),
         y=[num_requests] * qtty_of_groups,
         name="Requisições Solicitadas",
-        marker=dict(color='lightblue')
+        marker=dict(color='lightblue'),
+        width=0.2 
     ))
 
     fig.add_trace(go.Bar(
         x=list(range(1, qtty_of_groups + 1)),
         y=success_counts_per_group,
         name="Requisições Bem-Sucedidas",
+        marker=dict(color='blue'),
+        width=0.2
     ))
 
     fig.update_layout(
         xaxis_title="Número do Grupo",
         yaxis_title="Quantidade de Requisições",
-        barmode='group',
+        barmode='overlay',
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -149,19 +151,10 @@ def run_load_test_page():
 
     if st.button("Iniciar Teste de Carga"):
         if url:
-            # Criar a barra de progresso
-            progress_bar = st.progress(0, text="Executando o teste de carga...")
-
-            # Executar o teste de carga com a barra de progresso
-            group_durations, success_counts_per_group, group_means, group_std_devs = asyncio.run(
-                run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups, progress_bar)
-            )
-
-            # Remover a barra de progresso após a conclusão
-            progress_bar.empty()
+            group_durations, success_counts_per_group, group_means, group_std_devs = asyncio.run(run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups))
 
             st.info('A média de tempo de resposta as requisições é de {:.2f} segundos.'.format(np.mean(group_means)))
-            
+
             st.subheader("Tempo médio de resposta com desvio padrão por grupo")	
             st.write("O gráfico abaixo mostra o tempo médio de resposta com desvio padrão por grupo.")
             plot_mean_and_std_dev(group_means, group_std_devs)

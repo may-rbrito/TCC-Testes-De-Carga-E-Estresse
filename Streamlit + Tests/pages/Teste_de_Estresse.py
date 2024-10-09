@@ -28,31 +28,11 @@ async def do_stress_test(url, num_requests):
         tasks = [req_get_async(client, url) for _ in range(num_requests)]
         return await asyncio.gather(*tasks)
 
-async def run_stress_test(url, initial_num_requests, increment, delay_in_seconds, progress_bar):
+async def run_stress_test(url, initial_num_requests, increment, delay_in_seconds):
     num_requests = initial_num_requests
-    group_number = 1
-    total_groups = 0
-    
-    # Calcular o número total de grupos antes de sair do loop (estimativa)
-    while True:
-        results = await do_stress_test(url, num_requests)
-        success_count = sum(1 for response, _ in results if response and response.status_code == 200)
-        total_requests = len(results)
-        total_groups += 1
-
-        # Se a taxa de sucesso for menor que 50%, parar a execução
-        if success_count / total_requests < 0.50:
-            break
-
-        num_requests += increment
-
-    # Resetar variáveis e começar o teste de estresse
-    num_requests = initial_num_requests
-    group_number = 1
 
     while True:
-        # Atualiza o texto da barra de progresso
-        progress_bar.progress(group_number / total_groups, f"Executando as requisições do grupo {group_number}")
+
 
         results = await do_stress_test(url, num_requests)
 
@@ -67,22 +47,19 @@ async def run_stress_test(url, initial_num_requests, increment, delay_in_seconds
         success_counts_per_group.append(success_count)
         total_requests_per_group.append(total_requests)
         individual_durations.extend(durations_per_group)
-
         group_durations.append(total_time)
 
         if success_rate < 0.50:
             break
 
         num_requests += increment
-        group_number += 1
 
         if delay_in_seconds:
             await asyncio.sleep(delay_in_seconds)
 
-    # Limpar a barra de progresso após a conclusão do teste
-    progress_bar.empty()
 
-# Exibir os resultados
+
+
 def plot_time_per_group():
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -103,22 +80,27 @@ def plot_time_per_group():
 
 def plot_success_requests():
     fig = go.Figure()
-    fig.add_trace(go.Bar(
-        x=list(range(1, len(success_counts_per_group) + 1)),
-        y=success_counts_per_group,
-        name='Requisições Bem-Sucedidas'
-    ))
 
     fig.add_trace(go.Bar(
         x=list(range(1, len(total_requests_per_group) + 1)),
         y=total_requests_per_group,
-        name='Total de Requisições'
+        name='Total de Requisições',
+        marker=dict(color='lightblue'),
+        width=0.2  
+    ))
+
+    fig.add_trace(go.Bar(
+        x=list(range(1, len(success_counts_per_group) + 1)),
+        y=success_counts_per_group,
+        name='Requisições Bem-Sucedidas',
+        marker=dict(color='blue'),
+        width=0.2  
     ))
 
     fig.update_layout(
         xaxis_title="Grupo",
         yaxis_title="Número de Requisições",
-        barmode='group',
+        barmode='overlay',
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -171,11 +153,8 @@ def run_stress_test_page():
 
     if st.button("Iniciar Teste de Estresse"):
         if url:
-            # Adicionando a barra de progresso
-            progress_bar = st.progress(0, text="Executando o teste de estresse...")
-
-            # Executar o teste de estresse com a barra de progresso
-            asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds, progress_bar))
+            with st.spinner('Executando o teste de estresse... Isso pode levar algum tempo...'):
+                asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
 
             st.success('Teste concluído!')
 
@@ -192,6 +171,7 @@ def run_stress_test_page():
             plot_success_rate()
 
             st.subheader("Tabela de Resultados")
+            st.write("Tabela com os resultados obtidos.")
             show_results_table()
 
 if __name__ == "__main__":
