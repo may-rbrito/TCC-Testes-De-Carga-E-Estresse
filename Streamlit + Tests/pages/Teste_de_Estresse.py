@@ -96,6 +96,7 @@ def plot_success_requests():
         xaxis_title="Grupo",
         yaxis_title="Número de Requisições",
         barmode='overlay',
+        bargap=0.2,
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -148,7 +149,8 @@ def run_stress_test_page():
 
     if st.button("Iniciar Teste de Estresse"):
         if url:
-            asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
+            with st.spinner("Executando o teste de estresse..."):
+                asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
 
             st.subheader("Tempo Gasto por Grupo")
             st.write("Tempo gasto em segundos para cada grupo.")
