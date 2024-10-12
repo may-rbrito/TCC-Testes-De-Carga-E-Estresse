@@ -12,17 +12,19 @@ success_counts_per_group = []
 total_requests_per_group = []
 individual_durations = []
 response_rates = []
+group_means = []
+group_std_devs = []
+first_failure_group = None
+failure_messages = []  # Armazena as mensagens de falha
 
 # Mensagens sobre a url
 def performance(response_time):
-    if response_time < 0.2:
-        return st.success('Excelente: Tempo de resposta < 200 ms (Tempo médio de resposta: {:.2f} ms)'.format(response_time * 1000))
-    elif 0.2 <= response_time < 0.5:
-        return st.info('Boa: Tempo de resposta entre 200 ms e 500 ms (Tempo médio de resposta: {:.2f} ms)'.format(response_time * 1000))
+    if response_time < 0.5:
+        return st.success('Latência Baixa: Tempo de resposta menor que 0.5 s (Tempo médio de resposta: {:.2f} s)'.format(response_time))
     elif 0.5 <= response_time < 1:
-        return st.warning('Regular: Tempo de resposta entre 500 ms e 1 segundo (Tempo médio de resposta: {:.2f} ms)'.format(response_time * 1000))
+        return st.warning('Latência Moderada: Tempo de resposta entre 0.5 s e 1 s (Tempo médio de resposta: {:.2f} s)'.format(response_time))
     else:
-        return st.error('Ruim: Tempo de resposta > 1 segundo (Tempo médio de resposta: {:.2f} ms)'.format(response_time * 1000))
+        return st.error('Latência Alta: Tempo de resposta maior que 1 s (Tempo médio de resposta: {:.2f} s)'.format(response_time))
 
 # Realizar as requisições
 async def req_get_async(client, url):
@@ -41,6 +43,8 @@ async def do_stress_test(url, num_requests):
         return await asyncio.gather(*tasks)
 
 async def run_stress_test(url, initial_num_requests, increment, delay_in_seconds):
+    
+    global first_failure_group, failure_messages
     num_requests = initial_num_requests
     group_number = 1
 
@@ -72,8 +76,12 @@ async def run_stress_test(url, initial_num_requests, increment, delay_in_seconds
         group_means.append(group_mean)
         group_std_devs.append(group_std_dev)
 
+        if first_failure_group is None and success_rate < 1.0:
+            first_failure_group = group_number
+            failure_messages.append(f"Grupo {group_number}: A taxa de sucesso de resposta neste grupo ficou abaixo de 100% pela primeira vez ({success_rate*100:.2f}%)")
+
         if success_rate < 0.50:
-            st.error(f"Grupo {group_number}: Taxa de sucesso abaixo de 50% ({success_rate:.2f})")
+            failure_messages.append(f"Grupo {group_number}: A taxa de sucesso de resposta neste grupo ficou abaixo de 50% ({success_rate*100:.2f}%)")
             break
 
         num_requests += increment
@@ -121,9 +129,8 @@ def plot_success_counts_per_group():
 
     fig.update_layout(
         xaxis_title="Grupo",
-        yaxis_title="Número de Requisições",
+        yaxis_title="Quantidade de Requisições",
         barmode='overlay',
-        bargap=0.2,
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -154,14 +161,15 @@ def plot_success_rate():
     st.plotly_chart(fig)
 
 def show_results_table():
-    data = {"Grupo": list(range(1, len(group_durations) + 1)),
-        "Tempo Gasto (s)": group_means,
+    data = {
+        "Grupo": list(range(1, len(group_durations) + 1)),
+        "Tempo Gasto (s)": group_durations,
         "Requisições Bem-Sucedidas": success_counts_per_group,
-        "Total de Requisições": total_requests_per_group,
+        "Requisições Solicitadas": total_requests_per_group,
         "Taxa de Sucesso": response_rates
     }
     df = pd.DataFrame(data)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
 # Interface da página 
 def run_stress_test_page():
@@ -174,29 +182,34 @@ def run_stress_test_page():
     increment = st.number_input("Incremento de requisições:", min_value=1)
     delay_in_seconds = st.number_input("Delay entre grupos (segundos):", min_value=1)
 
-    if st.button("Iniciar Teste de Estresse"):
-        if url:
-            with st.spinner("Executando o teste de estresse..."):
-                asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
-            
-            response_time_geral = np.mean(group_durations)
-            performance(response_time_geral)
+    start_button = st.button("Iniciar Teste de Estresse", disabled=not url)
 
-            st.subheader("Tempo Gasto por Grupo")
-            st.write("Tempo gasto em segundos para cada grupo.")
-            plot_total_time_per_group()
+    if start_button:
+        with st.spinner("Executando o teste de estresse..."):
+            asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
 
-            st.subheader("Requisições Bem-Sucedidas e Totais por Grupo")
-            st.write("Número de requisições bem-sucedidas e totais para cada grupo.")
-            plot_success_counts_per_group()
+        st.subheader("Resultados do Teste de Estresse")          
+        for message in failure_messages:
+            st.info(message)
+        
+        response_time_geral = np.mean(group_means)
+        performance(response_time_geral) 
 
-            st.subheader("Taxa de Sucesso por Grupo")
-            st.write("Taxa de sucesso para cada grupo.")
-            plot_success_rate()
+        st.subheader("Tempo gasto por grupo")
+        st.write("O gráfico exibe o tempo total gasto pelo servidor para processar todas as requisições de cada grupo, refletindo o esforço do servidor.")
+        plot_total_time_per_group()
 
-            st.subheader("Tabela de Resultados")
-            st.write("Tabela com os resultados obtidos.")
-            show_results_table()
+        st.subheader("Requisições solicitadas e bem-sucedidas por grupo")
+        st.write("Este gráfico compara o número de requisições solicitadas com as bem-sucedidas em cada grupo, destacando a taxa de sucesso do servidor.")
+        plot_success_counts_per_group()
+
+        st.subheader("Taxa de sucesso por grupo")
+        st.write("O gráfico exibe a taxa de sucesso de resposta as requisições em cada grupo.")
+        plot_success_rate()
+
+        st.subheader("Tabela de resultados do Teste de Estresse")
+        st.write("A tabela resume os resultados por grupo, incluindo tempo total, taxa de sucesso, requisições solicitadas e requisições bem-sucedidas, para avaliar o desempenho do servidor.")
+        show_results_table()
 
 if __name__ == "__main__":
     run_stress_test_page()

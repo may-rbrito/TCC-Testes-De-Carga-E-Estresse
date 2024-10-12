@@ -14,14 +14,12 @@ group_std_devs = []
 
 # Mensagens sobre a url
 def performance(response_time):
-    if response_time < 0.2:
-        return st.success('Excelente: Tempo de resposta < 200 ms (Tempo médio de resposta: {:.2f} ms)'.format(response_time * 1000))
-    elif 0.2 <= response_time < 0.5:
-        return st.info('Boa: Tempo de resposta entre 200 ms e 500 ms (Tempo médio de resposta: {:.2f} ms)'.format(response_time * 1000))
+    if response_time < 0.5:
+        return st.success('Latência Baixa: Tempo de resposta menor que 0.5 s (Tempo médio de resposta: {:.2f} s)'.format(response_time))
     elif 0.5 <= response_time < 1:
-        return st.warning('Regular: Tempo de resposta entre 500 ms e 1 segundo (Tempo médio de resposta: {:.2f} ms)'.format(response_time * 1000))
+        return st.warning('Latência Moderada: Tempo de resposta entre 0.5 s e 1 s (Tempo médio de resposta: {:.2f} s)'.format(response_time))
     else:
-        return st.error('Ruim: Tempo de resposta > 1 segundo (Tempo médio de resposta: {:.2f} ms)'.format(response_time * 1000))
+        return st.error('Latência Alta: Tempo de resposta maior que 1 s (Tempo médio de resposta: {:.2f} s)'.format(response_time))
 
 def consistency(std_dev):
     if std_dev< 0.1:
@@ -87,7 +85,7 @@ def plot_mean_and_std_dev(group_means, group_std_devs):
 
     fig.update_layout(
         xaxis_title="Número do Grupo",
-        yaxis_title="Tempo (s)",
+        yaxis_title="Tempo Médio (s)",
     )
 
     st.plotly_chart(fig)
@@ -133,7 +131,6 @@ def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_
         xaxis_title="Número do Grupo",
         yaxis_title="Quantidade de Requisições",
         barmode='overlay',
-        bargap=0.2,
         legend=dict(
             orientation="h",
             yanchor="bottom",
@@ -147,14 +144,15 @@ def plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_
 
 def show_results_table(group_means, group_std_devs, group_durations, success_counts_per_group, num_requests):
     data = {
+        'Grupo': list(range(1, len(group_means) + 1)),
         'Média (s)': group_means,
         'Desvio Padrão (s)': group_std_devs,
-        'Tempo Total (s)': group_durations,
+        'Tempo Gasto (s)': group_durations,
         'Requisições Bem-Sucedidas': success_counts_per_group,
         'Requisições Solicitadas': num_requests
     }
     df = pd.DataFrame(data)
-    st.dataframe(df, use_container_width=True)
+    st.dataframe(df, use_container_width=True, hide_index=True)
 
 # Interface da página 
 def run_load_test_page():
@@ -173,8 +171,10 @@ def run_load_test_page():
         with st.spinner("Executando o teste de carga..."):
             group_durations, success_counts_per_group, group_means, group_std_devs = asyncio.run(run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups))
             
+            st.subheader("Resultados do Teste de Carga")          
             response_time_geral = np.mean(group_means)
             std_dev_geral = np.mean(group_std_devs)
+
             performance(response_time_geral)
             consistency(std_dev_geral)
 
@@ -182,7 +182,7 @@ def run_load_test_page():
             st.write("Este gráfico mostra o tempo médio de resposta e a variação (desvio padrão) em cada grupo.")
             plot_mean_and_std_dev(group_means, group_std_devs)
 
-            st.subheader("Tempo total por grupo")
+            st.subheader("Tempo gasto por grupo")
             st.write("O gráfico exibe o tempo total gasto pelo servidor para processar todas as requisições de cada grupo, refletindo o esforço do servidor.")
             plot_total_time_per_group(group_durations)
             
@@ -191,7 +191,7 @@ def run_load_test_page():
             plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_requests)
 
             st.subheader("Tabela de resultados do Teste de Carga")
-            st.write("A tabela resume os resultados por grupo, incluindo tempos médios, variação, tempo total e requisições bem-sucedidas, para avaliar o desempenho do servidor.")
+            st.write("A tabela resume os resultados por grupo, incluindo tempos médios, variação, tempo total, requisições solicitadas e requisições bem-sucedidas, para avaliar o desempenho do servidor.")
             show_results_table(group_means, group_std_devs, group_durations, success_counts_per_group, num_requests)
 
 if __name__ == "__main__":
