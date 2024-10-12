@@ -1,5 +1,5 @@
-streamlit
-httpx
-pandas
-numpy
-plotly
+streamlit>=1.20,<1.26
+httpx~=0.24
+pandas>=1.5,<3.0
+numpy==1.25.2
+plotly>=5.10
