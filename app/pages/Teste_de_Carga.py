@@ -22,10 +22,32 @@ def performance(response_time):
         return st.error('Latência Alta: Tempo de resposta maior que 1 s (Tempo médio de resposta: {:.2f} s)'.format(response_time))
 
 def consistency(std_dev):
-    if std_dev< 0.1:
-        return st.success('Estável: Os tempos de resposta as requisições são regulares (Desvio padrão: {:.2f})'.format(std_dev))
+    if std_dev < 0.1:
+        return st.success('Estável: Os tempos de resposta as requisições são regulares (Desvio padrão médio: {:.2f})'.format(std_dev))
     else:
-        return st.error('Instável: Os tempos de resposta as requisições são irregulares (Desvio padrão: {:.2f})'.format(std_dev))
+        return st.error('Instável: Os tempos de resposta as requisições são irregulares (Desvio padrão médio: {:.2f})'.format(std_dev))
+
+def analyze_success_rates(success_counts_per_group, num_requests):
+    success_rates = [success_count / num_requests for success_count in success_counts_per_group]
+
+    all_above_80 = all(rate >= 0.8 for rate in success_rates)
+    some_below_80_and_above_50 = any(0.8 > rate >= 0.5 for rate in success_rates)
+    all_below_80_and_above_50 = all(0.8 > rate >= 0.5 for rate in success_rates)
+    some_below_50 = any(rate < 0.5 for rate in success_rates)
+    all_below_50 = all(rate < 0.5 for rate in success_rates)
+
+    if all_above_80:
+        st.success("Todos os grupos apresentam taxa de sucesso entre 100% e 80%.")
+    elif all_below_50:
+        st.error("Todos os grupos apresentam taxas de sucesso abaixo de 50%.")
+    elif some_below_50:
+        st.error("Alguns grupos apresentam taxas de sucesso abaixo de 50%.")
+    elif all_below_80_and_above_50:
+        st.warning("Todos os grupos apresentam taxas de sucesso entre 80% e 50%.")
+    elif some_below_80_and_above_50:
+        st.warning("Alguns grupos apresentam taxas de sucesso entre 80% e 50%.")
+
+    return success_rates
 
 # Realizar as requisições
 async def req_get_async(client, url):
@@ -85,7 +107,7 @@ def plot_mean_and_std_dev(group_means, group_std_devs):
 
     fig.update_layout(
         xaxis_title="Número do Grupo",
-        yaxis_title="Tempo Médio (s)",
+        yaxis_title="Tempo (s)",
     )
 
     st.plotly_chart(fig)
@@ -171,12 +193,11 @@ def run_load_test_page():
         with st.spinner("Executando o teste de carga..."):
             group_durations, success_counts_per_group, group_means, group_std_devs = asyncio.run(run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups))
             
-            st.subheader("Resultados do Teste de Carga")          
             response_time_geral = np.mean(group_means)
             std_dev_geral = np.mean(group_std_devs)
-
             performance(response_time_geral)
             consistency(std_dev_geral)
+            analyze_success_rates(success_counts_per_group, num_requests)
 
             st.subheader("Tempo médio de resposta com desvio padrão por grupo")	
             st.write("Este gráfico mostra o tempo médio de resposta e a variação (desvio padrão) em cada grupo.")
@@ -194,5 +215,5 @@ def run_load_test_page():
             st.write("A tabela resume os resultados por grupo, incluindo tempos médios, variação, tempo total, requisições solicitadas e requisições bem-sucedidas, para avaliar o desempenho do servidor.")
             show_results_table(group_means, group_std_devs, group_durations, success_counts_per_group, num_requests)
 
-if __name__ == "__main__":
-    run_load_test_page()
+# Inicializar a página
+run_load_test_page()

@@ -15,7 +15,7 @@ response_rates = []
 group_means = []
 group_std_devs = []
 first_failure_group = None
-failure_messages = []  # Armazena as mensagens de falha
+failure_messages = []
 
 # Mensagens sobre a url
 def performance(response_time):
@@ -25,6 +25,28 @@ def performance(response_time):
         return st.warning('Latência Moderada: Tempo de resposta entre 0.5 s e 1 s (Tempo médio de resposta: {:.2f} s)'.format(response_time))
     else:
         return st.error('Latência Alta: Tempo de resposta maior que 1 s (Tempo médio de resposta: {:.2f} s)'.format(response_time))
+
+def analyze_success_rates(success_counts_per_group, total_requests_per_group):
+    success_rates = [success_count / total_requests for success_count, total_requests in zip(success_counts_per_group, total_requests_per_group)]
+
+    all_above_80 = all(rate >= 0.8 for rate in success_rates)
+    some_below_80_and_above_50 = any(0.8 > rate >= 0.5 for rate in success_rates)
+    all_below_80_and_above_50 = all(0.8 > rate >= 0.5 for rate in success_rates)
+    some_below_50 = any(rate < 0.5 for rate in success_rates)
+    all_below_50 = all(rate < 0.5 for rate in success_rates)
+
+    if all_above_80:
+        st.success("Todos os grupos apresentam taxa de sucesso entre 100% e 80%.")
+    elif all_below_50:
+        st.error("Todos os grupos apresentam taxas de sucesso abaixo de 50%.")
+    elif some_below_50:
+        st.error("Alguns grupos apresentam taxas de sucesso abaixo de 50%.")
+    elif all_below_80_and_above_50:
+        st.warning("Todos os grupos apresentam taxas de sucesso entre 80% e 50%.")
+    elif some_below_80_and_above_50:
+        st.warning("Alguns grupos apresentam taxas de sucesso entre 80% e 50%.")
+
+    return success_rates
 
 # Realizar as requisições
 async def req_get_async(client, url):
@@ -193,7 +215,9 @@ def run_stress_test_page():
             st.info(message)
         
         response_time_geral = np.mean(group_means)
-        performance(response_time_geral) 
+        performance(response_time_geral)
+        analyze_success_rates(success_counts_per_group, total_requests_per_group)
+
 
         st.subheader("Tempo gasto por grupo")
         st.write("O gráfico exibe o tempo total gasto pelo servidor para processar todas as requisições de cada grupo, refletindo o esforço do servidor.")
