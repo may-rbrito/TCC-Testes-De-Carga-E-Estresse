@@ -1,8 +1,8 @@
 import streamlit as st
 
 def home():
-    st.set_page_config(page_title="Página Inicial", page_icon="🏠", layout="centered")
-    st.title("Página Inicial")
+    st.set_page_config(page_title="API Lab Check", page_icon="🏠", layout="centered")
+    st.title("API Lab Check")
 
     st.write("Este aplicativo foi desenvolvido como parte do meu Trabalho de Conclusão de Curso (TCC) para o curso de Engenharia Elétrica da Universidade do Estado do Rio de Janeiro.")
     st.info("Na barra lateral, você pode acessar as opções para realizar os **Testes de Carga e de Estresse**. Para executar os testes, será necessário ter uma **API pública** que possa ser acessada. Certifique-se de que a URL fornecida esteja disponível e que você tenha permissão para realizar os testes.")
