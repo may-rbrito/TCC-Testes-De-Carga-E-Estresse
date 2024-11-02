@@ -210,7 +210,7 @@ def run_stress_test_page():
         with st.spinner("Executando o teste de estresse..."):
             asyncio.run(run_stress_test(url, initial_num_requests, increment, delay_in_seconds))
 
-        st.subheader("Resultados do Teste de Estresse")          
+        st.markdown("### Resultados do Teste de Estresse")          
         for message in failure_messages:
             st.info(message)
         
@@ -219,19 +219,19 @@ def run_stress_test_page():
         analyze_success_rates(success_counts_per_group, total_requests_per_group)
 
 
-        st.subheader("Tempo gasto por grupo")
+        st.markdown("### Tempo gasto por grupo")
         st.write("O gráfico exibe o tempo total gasto pelo servidor para processar todas as requisições de cada grupo, refletindo o esforço do servidor.")
         plot_total_time_per_group()
 
-        st.subheader("Requisições solicitadas e bem-sucedidas por grupo")
+        st.markdown("### Requisições solicitadas e bem-sucedidas por grupo")
         st.write("Este gráfico compara o número de requisições solicitadas com as bem-sucedidas em cada grupo, destacando a taxa de sucesso do servidor.")
         plot_success_counts_per_group()
 
-        st.subheader("Taxa de sucesso por grupo")
+        st.markdown("### Taxa de sucesso por grupo")
         st.write("O gráfico exibe a taxa de sucesso de resposta as requisições em cada grupo.")
         plot_success_rate()
 
-        st.subheader("Tabela de resultados do Teste de Estresse")
+        st.markdown("### Tabela de resultados do Teste de Estresse")
         st.write("A tabela resume os resultados por grupo, incluindo tempo total, taxa de sucesso, requisições solicitadas e requisições bem-sucedidas, para avaliar o desempenho do servidor.")
         show_results_table()
 

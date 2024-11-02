@@ -193,25 +193,27 @@ def run_load_test_page():
         with st.spinner("Executando o teste de carga..."):
             group_durations, success_counts_per_group, group_means, group_std_devs = asyncio.run(run_load_test(url, delay_in_seconds, num_requests, qtty_of_groups))
             
+            st.markdown("### Resultados do Teste de Carga")          
+
             response_time_geral = np.mean(group_means)
             std_dev_geral = np.mean(group_std_devs)
             performance(response_time_geral)
             consistency(std_dev_geral)
             analyze_success_rates(success_counts_per_group, num_requests)
 
-            st.subheader("Tempo médio de resposta com desvio padrão por grupo")	
+            st.markdown("### Tempo médio de resposta com desvio padrão por grupo")	
             st.write("Este gráfico mostra o tempo médio de resposta e a variação (desvio padrão) em cada grupo.")
             plot_mean_and_std_dev(group_means, group_std_devs)
 
-            st.subheader("Tempo gasto por grupo")
+            st.markdown("### Tempo gasto por grupo")
             st.write("O gráfico exibe o tempo total gasto pelo servidor para processar todas as requisições de cada grupo, refletindo o esforço do servidor.")
             plot_total_time_per_group(group_durations)
             
-            st.subheader("Requisições solicitadas e bem-sucedidas por grupo")
+            st.markdown("### Requisições solicitadas e bem-sucedidas por grupo")
             st.write("Este gráfico compara o número de requisições solicitadas com as bem-sucedidas em cada grupo, destacando a taxa de sucesso do servidor.")
             plot_success_counts_per_group(success_counts_per_group, qtty_of_groups, num_requests)
 
-            st.subheader("Tabela de resultados do Teste de Carga")
+            st.markdown("### Tabela de resultados do Teste de Carga")
             st.write("A tabela resume os resultados por grupo, incluindo tempos médios, variação, tempo total, requisições solicitadas e requisições bem-sucedidas, para avaliar o desempenho do servidor.")
             show_results_table(group_means, group_std_devs, group_durations, success_counts_per_group, num_requests)
 
