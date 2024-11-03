@@ -36,15 +36,15 @@ def analyze_success_rates(success_counts_per_group, total_requests_per_group):
     all_below_50 = all(rate < 0.5 for rate in success_rates)
 
     if all_above_80:
-        st.success("Todos os grupos apresentam taxa de sucesso entre 100% e 80%.")
+        st.success("Todos os grupos apresentam taxa de sucesso entre 80% e 100%.")
     elif all_below_50:
         st.error("Todos os grupos apresentam taxas de sucesso abaixo de 50%.")
     elif some_below_50:
         st.error("Alguns grupos apresentam taxas de sucesso abaixo de 50%.")
     elif all_below_80_and_above_50:
-        st.warning("Todos os grupos apresentam taxas de sucesso entre 80% e 50%.")
+        st.warning("Todos os grupos apresentam taxas de sucesso entre 50% e 80%.")
     elif some_below_80_and_above_50:
-        st.warning("Alguns grupos apresentam taxas de sucesso entre 80% e 50%.")
+        st.warning("Alguns grupos apresentam taxas de sucesso entre 50% e 80%.")
 
     return success_rates
 
