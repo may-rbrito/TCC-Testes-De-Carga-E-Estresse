@@ -22,7 +22,7 @@ def performance(response_time):
         return st.error('Latência Alta: Tempo de resposta maior que 1 s (Tempo médio de resposta: {:.2f} s)'.format(response_time))
 
 def consistency(std_dev):
-    if std_dev < 0.1:
+    if std_dev <= 0.1:
         return st.success('Estável: Os tempos de resposta as requisições são regulares (Desvio padrão médio: {:.2f})'.format(std_dev))
     else:
         return st.error('Instável: Os tempos de resposta as requisições são irregulares (Desvio padrão médio: {:.2f})'.format(std_dev))
